@@ -1,0 +1,440 @@
+<!doctype html>
+<html>
+  <head>
+    <title>SNATCH-IT game</title>
+    <meta name="viewport" content="user-scalable=no"/>
+
+    <!-- styles used in the Snatch game -->
+    <link rel="stylesheet" type="text/css" href="snCore/cssBasic.css">
+    <link rel="stylesheet" type="text/css" href="snCore/cssButton.css">
+    <link rel="stylesheet" type="text/css" href="snCore/cssInstructions.css">
+    <link rel="stylesheet" type="text/css" href="snCore/cssLoader.css">
+    <link rel="stylesheet" type="text/css" href="snCore/cssPopup.css">
+    <link rel="stylesheet" type="text/css" href="snCore/cssToast.css">
+
+    <!-- shared CSS -->
+    <link rel="stylesheet" type="text/css" href="snOuter/common.css">
+    <link rel="stylesheet" type="text/css" href="snOuter/zeroclipboard.css">
+
+    <!-- the JS and CSS for the 'flickity' flickable carousel -->
+    <link rel="stylesheet" href="include/flickity/flickity.css" media="screen">
+    <script src="include/flickity/flickity.pkgd.js"></script>
+
+    <!-- I don't want the bundle, because I want to use the moment.js library myself-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.0/Chart.bundle.min.js"></script>
+
+    <!-- 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.2/Chart.js"></script>
+    --> 
+
+    <!-- This is potentially double inclusion, as chart.bundle already contains moment
+	 this is advised against but I am doing it anyhow -->   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.14.1/moment.js"></script>
+
+
+    <!-- library / framework JS -->
+    <script src="fabric.js-1.5.0/dist/fabric.min.js"></script>
+    <script src="include/socket.io-1.2.0.js"></script>
+    <script src="include/jquery-1.11.1.js"></script>
+
+    <!-- my JS -->
+    <script src="snOuter/common.js"></script>
+
+    <!-- JS files specific to Snatch game -->
+    <script src="snCore/snatch-client#FF#.js"></script>
+
+    <script src="snCore/snAssembler.js"></script>
+    <script src="snCore/snBasic.js"></script>
+    <script src="snCore/snControls#FF#.js"></script>
+    <script src="snCore/snDefineWord.js"></script>
+    <script src="snCore/snEvent.js"></script>
+    <script src="snCore/snGrid.js"></script>
+    <script src="snCore/snKeyboard.js"></script>
+    <script src="snCore/snLatency.js"></script>
+    <script src="snCore/snMouse.js"></script>
+    <script src="snCore/snPopup.js"></script>
+    <script src="snCore/snSpell.js"></script>
+    <script src="snCore/snSplash#FF#.js"></script>
+    <script src="snCore/snTile.js"></script>
+    <script src="snCore/snToast.js"></script>
+    <script src="snCore/snWords.js"></script>
+    <script src="snCore/snZones.js"></script>
+
+  </head>
+
+
+  <body>
+    <!-- for when the page is served with the intention of directly joining a game -->
+    #identity-html#
+
+    <!-- The game canvas....-->
+    <div class="page" id="canv-inside">
+      <canvas id="c"></canvas>
+    </div>
+
+    <div class="page" id="game-container">
+    </div>
+
+
+    <!-- 5. The Modal -->
+    <div id="modal_dark_sheet">
+
+      <!-- Modal content -->
+      <div id="modal-content">
+	<div id="modal-header">
+	  <span id="close">×</span>
+	  <span id="box-title"></span>
+	</div>
+
+	<div id="modal-body"> <!-- Objects within the Modal Body (numbered, with switchable visibility) -->
+
+	  <!-- Here is a list of the different things for the modal-body:
+	       
+	       modal-body-scores-table
+	       modal-body-lost-connection
+	       modal-body-options-menu
+	       modal-body-flickity-rules
+	       modal-body-flickity-stats
+	    -->
+
+	  <!-- modal-body-scores-table (note that this always has to be generated dynamically) -->
+	  <div id="modal-body-scores-table">
+	    <div id="scores-table-container"></div>
+	    <div id="disconnect-hint">
+	      <div>
+		When players lose their internet connection or closed their brower mid game, their word groups remain.
+	      </div>
+	      <div id="disconnect-hint-v1">
+		To reclaim the words, rejoin the same game (identified by word key or PIN). Enter the same Player Name as before.
+	      </div>
+	      <div id="disconnect-hint-v2">
+		This game is now completed, and players are shown as "disconnected" based on their status at the moment of game completion.
+	      </div>
+	    </div>
+	    <p class="p-for-small-RHS-link"> 
+	      <a href="#" onclick="snCore.Popup.openModal('stats')">More game stats...</a> 
+	    </p>
+	  </div>
+
+	  <!-- modal-body-options-menu -->
+	  <div id="modal-body-options-menu">
+
+	    <p class="p-button-center">
+	      <a class="button gray alt" href="#" onclick="snCore.Popup.openModal('rules')">See Instructions</a>
+	      <a class="button gray alt" href="#" onclick="snCore.Popup.gotoHomePage()">Leave this Game</a>
+	    </p> 
+
+	    <div id="copyable-container">
+	      <div class="box02">
+		<div class="box04">
+		  Link into this game:
+		</div>
+		<div class="box03">
+		  <a href="#" onclick="gen_link_as_key()">
+		    key</a>
+		  |
+		  <a href="#" onclick="gen_link_as_pin()">
+		    pin
+		  </a>
+
+		</div>
+		<div class="input-group" id="k1">
+
+		  <input type="text"
+			 class="form-control input-monospace input-sm"
+			 value="easily-copied-content"
+			 id="k2"
+			 readonly>
+
+		  <div class="input-group-button" id="k3">
+		    <button aria-label="Copy to clipboard"
+			    class="btn btn-sm zeroclipboard-button"
+			    type="button"
+			    id="k4">
+		      
+		      <svg id="k5" aria-hidden="true" class="octicon octicon-clippy" height="16" version="1.1" viewBox="0 0 14 16" width="14"><path d="M2 12h4v1H2v-1z m5-6H2v1h5v-1z m2 3V7L6 10l3 3V11h5V9H9z m-4.5-1H2v1h2.5v-1zM2 11h2.5v-1H2v1z m9 1h1v2c-0.02 0.28-0.11 0.52-0.3 0.7s-0.42 0.28-0.7 0.3H1c-0.55 0-1-0.45-1-1V3c0-0.55 0.45-1 1-1h3C4 0.89 4.89 0 6 0s2 0.89 2 2h3c0.55 0 1 0.45 1 1v5h-1V5H1v9h10V12zM2 4h8c0-0.55-0.45-1-1-1h-1c-0.55 0-1-0.45-1-1s-0.45-1-1-1-1 0.45-1 1-0.45 1-1 1h-1c-0.55 0-1 0.45-1 1z"></path></svg>
+		    </button>
+
+		  </div>
+		</div>
+	      </div>
+	    </div>
+
+	    <p> 
+      <input type="checkbox" name="uOpt_challenge" id="uOpt_challenge" onclick="snCore.Popup.sendSettingChange()"/>
+	      <label for="uOpt_challenge">Enable Challenge feature on word meaning</label>
+	    </p>
+
+	    <p> 
+	      <input type="checkbox" name="uOpt_stem" id="uOpt_stem" onclick="snCore.Popup.sendSettingChange()"/>
+	      <label for="uOpt_stem">Enforce stem-change rule</label>
+	    </p>
+
+	    <p> 
+	      Turns rule
+	      <select id="uOpt_turns" onchange="snCore.Popup.sendSettingChange()">
+		<option>Stricly rotating</option>
+		<option>Individual timouts</option>
+		<option>Pseudo Turns</option>
+		<option>5 second letter spew</option>
+		<option>10 second letter spew</option>
+		<option>free for all</option>
+	      </select>
+	    </p> 
+
+	    <p>
+	      <input type="checkbox" name="uOpt_flippy" id="uOpt_flippy" onclick="snCore.Popup.sendSettingChange()"/>
+	      <label for="uOpt_flippy">Double flip-upon snatch rule</label>
+	    </p>
+
+	    <p> 
+	      Dictionary
+	      <select id="uOpt_dictionary" onclick="snCore.Popup.sendSettingChange()">
+		<option>None</option>
+		<option>Sowpods</option>
+		<option>Top 60k words</option>
+	      </select>
+	    </p>
+
+	    <p> 
+	      <input type="checkbox" name="uOpt_penalty" id="uOpt_penalty" onclick="snCore.Popup.sendSettingChange()"/>
+	      <label for="uOpt_penalty">Apply penalty for words not in dictionary</label>
+	    </p>
+
+	    <p class="p-for-small-RHS-link"> 
+	      <a id="download-log-link-a" target="_blank">Game Log Download</a> 
+	    </p>
+
+	  </div>
+
+	  <!-- modal-body-connection-problem -->
+	  <div id="modal-body-slow-connection">
+	    <p>Your device exchanges messages with a server during play...</p>
+	    <div class="loader">Network Latency...</div>
+	    <p>There has now been a <span id="connection-latency">[too many]</span> second delay receiving a response to a message. Is there something wrong with your internet connection?</p>
+
+	    <p>If your internet is working this message may disappear shortly.</p>
+
+	    <p>Otherwise, if your internet is working, click below to re-establish a connection to this game. Enter your name exactly as before to reclaim your words.</p>
+
+	  </div>
+
+	  <!-- modal-body-connection-problem -->
+	  <div id="modal-body-slow-connection">
+	  </div>
+
+	  <!-- modal-body-connection-lost -->
+	  <div id="modal-body-lost-connection">
+	    <p>Your device must exchange messages with a server to allow play.</p>
+	    <p>A message has now failed to arrive after a <span id="connection-latency-2">[too many]</span> wait.</p>
+	    <img src="img/connection_lost.png" alt="icon" height="160" width="160"> 
+	    <p>If your Internet is working, reconnecting should allow you to resume play. Enter your name exactly as before.</p>
+	    <p>Quit lets you create or join a different game.</p>
+	  </div>
+
+	  <div id="modal-body-flickity-rules">
+
+	    <div class="carousel rules-container">
+
+	      <!-- Rules 1 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  In the game of <span class="rutxt-italic-bold">Snatch-It</span> you spot words as fast as you can... then steal them!</p>
+		<p>
+		  The original version involves a set of 100 letter-tiles, a table-top and nothing more!</p>
+		<p>
+		  It&#39;s a game for at least 2 players. There&#39;s not really an upper limit on the number of people that can play.</p>
+
+		<p><span class="rutxt-h1">To play</span></p>
+
+		<ol class="rutxt-list">
+		  <li><span class="rutxt-list-item">
+		      Start with all the tiles face down on the table.</span></li>
+		  <li><span class="rutxt-list-item">
+		      Using some system of turns, the players flip the tiles one-by-one revealing letters.</span></li>
+		  <li><span class="rutxt-list-item">
+		      As soon as enough letters are flipped to make a word, shout out that word and claim it for your own. <br><br>For example, suppose letters <span class="rutxt-tile">T</span>, <span class="rutxt-tile">K</span>, <span class="rutxt-tile">H</span> then <span class="rutxt-tile">A</span> get flipped, in that order. I then shout out &ldquo;hat&rdquo; and claim those 3 letters as my own, taking the word <span class="rutxt-word"><span class="rutxt-tile">H</span><span class="rutxt-tile">A</span><span class="rutxt-tile">T</span></span>. The <span class="rutxt-tile">K</span> remains unclaimed in the central area.</span></li>
+		</ol>
+	      </div>
+
+	      <!-- Rules 2 -->
+	      <div class="carousel-cell rules-cell">
+		<ol class="rutxt-list">
+		  <li value="4"><span class="rutxt-list-item">
+		    Now we continue flipping letters. Another <span class="rutxt-tile">A</span> comes up, and then an <span class="rutxt-tile">N</span>. When you see the <span class="rutxt-tile">N</span>, you shout out <span class="rutxt-word"><span class="rutxt-tile">T</span><span class="rutxt-tile">H</span><span class="rutxt-tile">A</span><span class="rutxt-tile">N</span></span> and claim it. This word is made by combining the <span class="rutxt-tile">N</span> with the letters of my word <span class="rutxt-word"><span class="rutxt-tile">H</span><span class="rutxt-tile">A</span><span class="rutxt-tile">T</span></span>. I have just lost that word, would would have contributed to my final score.</span></li>
+		  <li><span class="rutxt-list-item">
+		    Before any more letters are turned, I spot the word &ldquo;thank&rdquo;. Now I snatch your &ldquo;than&rdquo; and it becomes my <span class="rutxt-word"><span class="rutxt-tile">T</span><span class="rutxt-tile">H</span><span class="rutxt-tile">A</span><span class="rutxt-tile">N</span><span class="rutxt-tile">K</span></span></span></li>
+		  </ol>
+		<p><span class="rutxt-h1">
+		    To summarise these rules:</span></p>
+		<ul>
+		  <li>
+		    Once letters have been grouped (i.e. made into a word), those letters can never be separated. For example, the word <span class="rutxt-word"><span class="rutxt-tile">T</span><span class="rutxt-tile">A</span><span class="rutxt-tile">N</span><span class="rutxt-tile">K</span></span> could not be snatched in the example above, because it would mean removing the <span class="rutxt-tile">H</span> from the grouping.</li>
+		  <li>
+		    A snatch move must extend the length of a word. It cannot only be an anagram.</li>
+		  <li>
+		    A snatch move can combine any combination of free letters and your own or other peoples&#39; words. Two or more words can be combined without introducing free letters, or multiple free letters can be included at once. The only restriction is that the resulting word must be an actual word.</li>
+		  </ul>
+	      </div>
+
+	      <!-- Rules 3 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  <span class="rutxt-italic-bold">In this web-based incarnation of the game</span>, players open a webpage on their PC, tablet or smart-phone. Using the Internet, the pages running on their devices are all <span class="rutxt-italic-bold">synced</span> such that they all display the same state of play. By using codes to identify games, multiple separate games can be played at once.</p>
+		<p>
+		  The game web-page supports both mouse and keyboard controls, as well as touch control on devices with a touch screen. Players using a physical keyboard will be at an advantage over players with touch-screen devices - typing is faster! Nonethless, all types of device can interoperate.</p>
+		<p>
+		  <span class="rutxt-h1">Flipping</span></p>
+		<p>
+		  On a PC, press the <span class="rutxt-key">space</span> key to flip a new letter.</p>
+		<p>
+		  On a tablet or smart-phone, tap the <span class="rutxt-button">Turn Letter (100)</span> button at the top of the screen. Indicated in brackets is how many unturned letters tiles remain.</p>
+	      </div>
+
+	      <!-- Rules 4 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  <span class="rutxt-h1">Snatching</span></p>
+		<p>
+		  On a PC &ldquo;shout out&rdquo; a word by typing it out and hitting <span class="rutxt-key">Enter</span>.</p>
+		<p>
+		  If you make a mistake (or someone else is quicker!) use <span class="rutxt-key">Backspace</span> to clear a letter or <span class="rutxt-key">Escape</span> to clear the whole word typed.</p>
+		<p>
+		  In some browsers, the keys above have pre-assigned functions that interfere with the game. In this case, an alternative is to use the numeric keys. Their functions are assigned as follows: <span class="rutxt-key">1</span> clear spell <span class="rutxt-key">2</span> turn a new letter <span class="rutxt-key">3</span> snatch <span class="rutxt-key">4</span> show scores <span class="rutxt-key">5</span> backspace.</p>
+		<p>
+		  On a touch-screen or using a mouse, tap on the letters that make your word in order. Then tap/click <span class="rutxt-button">Snatch-it</span>.</p>
+		<p>
+		  Use <span class="rutxt-button">Cancel</span> to clear entire text so far spelt out.</p>
+		<p>
+		  <span class="rutxt-italic-bold">
+		    You have now read enough to be able to play. Additional information, rules and scoring are on the next 3 pages.
+		  </span>
+		</p>
+	      </div>
+
+	      <!-- Rules 5 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  <span class="rutxt-h1">Submitting words at the same time</span></p>
+		<p>
+		  It is not physically possible for two players to submit the same (or interfering words) at exactly the same time because one of them must have clicked <span class="rutxt-button">snatch-it</span> some fraction of a second before the other.</p>
+		<p>
+		  In practice, network latency (i.e. how long does it take messages about game-play to reach the server, which adjudicates the game) is variable. This will most affect whose move is interpreted first. The remote computer processes and broadcasts the results of messages strictly in the order that they are received.</p>
+		<p>
+		  <span class="rutxt-h1">Stem change rule</span></p>
+		<p>
+		  An optional rule is to require that a snatch alters the meaning of a word. This prevents repetitive boring play such as adding an &#39;S&#39; to every verb and noun. So ARM could be snatched as RAMS but not as ARMS. LODGE could not be snatched as LODGED; VOW could not be snatch as AVOW but could be snatched as VOWEL. And I don&#39;t think VOID could be snatched as AVOID.</p>
+		<p>
+		  Players could simply agree to this rule, or, the computer can block non-stem change snatches. This feature is available, but be warned that it may not be totally consistent and fair (the algorithm is still at beta stage).</p>
+	      </div>
+
+	      <!-- Rules 6 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  <span class="rutxt-h1">Dictionary checking</span></p>
+		<p>
+		  Words are checked against a dictionary, i.e. computer determines if word submitted is a real word.</p>
+		<p>
+		  <span class="rutxt-h1">Challenge rule</span></p>
+		<p>
+		  Some people think it should not be allowed to snatch a word - even if it is in the dictionary - if you do not know its meaning. Thus, there is an optional game feature where, after someone has snatched a word, you can challenge them. Within 60 seconds of this, they will have to select its definition from a list of definitions generated by the computer. If select correctly, they keep the disputed word and are given a randomly chosen word from the challenger&#39;s words. Otherwise, the challenger claims the word whose definition was not known.</p>
+	      </div>
+
+	      <!-- Rules 7 -->
+	      <div class="carousel-cell rules-cell">
+		<p>
+		  <span class="rutxt-h1">Turns rule</span></p>
+		<p>
+		  The rate of turning letters determines the pace of game-play, and several different options are available, varying exactly what will trigger flipping of letters</p>
+		<ul>
+		  <li>
+		    <span class="rutxt-italic-bold">Strictly rotating</span> - players take it in turns to choose a moment to flip, and must always wait for the player before them in the circle</li>
+		  <li>
+		    <span class="rutxt-italic-bold">Individual timeouts</span> - each player can turn letters at a maximum rate of 1 per 10 seconds.</li>
+		  <li>
+		    <span class="rutxt-italic-bold">Individual timeouts, reset by anyone else&#39;s flipping</span> - (this is default) after turning a tile, you wait either for 10 seconds or for any other player to flip a tile (whichever is sooner) and they you can turn again.</li>
+		  <li>
+		    <span class="rutxt-italic-bold">5 second letter spew</span> - The computer delivers new tiles one every 5 seconds</li>
+		  <li>
+		    <span class="rutxt-italic-bold">free for all</span> - players turn letters without restriction</li>
+		</ul>
+	      </div>
+	    </div>
+
+	  </div>
+
+	  <div id="modal-body-flickity-stats">
+
+	    <div class="carousel stats-container">
+
+	      <!-- Graph here -->
+	      <div class="carousel-cell stats-cell">
+		<div id="myChart-container">
+		  <canvas id="myChart"></canvas>
+		</div>
+	      </div>
+
+	      <!-- Game stats block A -->
+	      <div class="carousel-cell stats-cell">
+		<p>
+		  Placeholder A for game stats
+		</p>
+	      </div>
+
+	      <!-- Game stats block B -->
+	      <div class="carousel-cell stats-cell">
+		<p>
+		  Placeholder B for game stats
+		</p>
+	      </div>
+
+	    </div>
+	  </div>
+
+	</div>
+
+
+
+
+	<div id="modal-footer">
+
+	  <!-- Here is a list of the different things for the modal-footer:
+
+	       modal-footer-simple-close
+	       modal-footer-rejoin
+	       modal-footer-close-replay
+	    
+	    -->
+
+	  <!-- 6.1. Just the 'Close' button on the bottom -->
+	  <div id="modal-footer-simple-close">
+	    <a class="modal" href="#" onclick="snCore.Popup.hideModal()">Close</a>
+	  </div>	  
+
+	  <!-- 6.2. Footer for Connection lost -->
+	  <div id="modal-footer-rejoin">
+	    <a class="modal" href="#" onclick="location.reload()">Reconnect</a>
+	    | <a class="modal" href="#" onclick="snCore.Popup.gotoHomePage()">Quit</a>
+	  </div>
+
+	  <!-- 6.2. Footer for Game finished -->
+	  <div id="modal-footer-close-replay">
+	    <a class="modal" href="#" onclick="snCore.Popup.hideModal()">Hide</a>
+	    | <a class="modal" href="#" onclick="snCore.Popup.gotoHomePage()">Play Again</a>
+	  </div>
+
+	  <!-- 6.4. (used for Instructions page) "back" button and "close" button -->
+	  <div id="modal-footer-back-and-close">
+	    <a class="modal" href="#" onclick="snCore.Popup.openModal('options')">Back</a>
+	    | <a class="modal" href="#" onclick="snCore.Popup.hideModal()">Close</a>
+	  </div>	  
+
+
+	</div>
+      </div>
+
+    </div>
+
+  </body>
+
+</html>
